@@ -7,5 +7,6 @@ Ezilink
 </h1>
 
 Buy, sell, and upgrade multiple Ezilis at once.
+Intended for use with my other mod SoloCoopMod.
 
 [![Requires BTD6 Mod Helper](https://raw.githubusercontent.com/gurrenm3/BTD-Mod-Helper/master/banner.png)](https://github.com/gurrenm3/BTD-Mod-Helper#readme)
