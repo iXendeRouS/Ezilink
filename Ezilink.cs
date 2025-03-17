@@ -21,7 +21,7 @@ namespace Ezilink
 {
     public class Ezilink : BloonsTD6Mod
     {
-        private readonly List<Tower> _ezilis = new();
+        private readonly List<Tower> ezilis = new();
         private readonly List<Vector2> positions = new();
         private bool upgradingEzilis = false;
 
@@ -34,20 +34,11 @@ namespace Ezilink
         {
             base.OnLateUpdate();
 
-            if (upgradingEzilis && _ezilis.Count == 0)
+            if (upgradingEzilis && ezilis.Count == 0)
             {
                 FindEzilis();
                 upgradingEzilis = false;
             }
-        }
-
-        private void FindEzilis()
-        {
-            _ezilis.Clear();
-
-            foreach (var tower in InGame.instance.GetTowers())
-                if (tower.towerModel.baseId == "Ezili")
-                    _ezilis.Add(tower);
         }
 
         public override void OnMatchStart()
@@ -60,57 +51,62 @@ namespace Ezilink
         public override void OnRestart()
         {
             base.OnRestart();
-            _ezilis.Clear();
+            ezilis.Clear();
             positions.Clear();
+        }
+
+        private void FindEzilis()
+        {
+            ezilis.Clear();
+
+            foreach (var tower in InGame.instance.GetTowers())
+                if (tower.towerModel.baseId == "Ezili")
+                    ezilis.Add(tower);
         }
 
         public override void OnTowerCreated(Tower tower, Entity target, Model modelToUse)
         {
             base.OnTowerCreated(tower, target, modelToUse);
 
-            if (tower.towerModel.baseId == "Ezili")
+            if (tower.towerModel.baseId != "Ezili") return;
+
+            ezilis.Add(tower);
+
+            if (!Settings.EnableMod) return;
+
+            var model = InGame.instance.GetGameModel().GetTower("Ezili");
+
+            for (int i = positions.Count - 1; i >= 0; i--)
             {
-                _ezilis.Add(tower);
+                Vector2 position = positions[i];
+                positions.RemoveAt(i);
 
-                if (!Settings.EnableMod) return;
-
-                var model = InGame.instance.GetGameModel().GetTower("Ezili");
-
-                for (int i = positions.Count - 1; i >= 0; i--)
-                {
-                    Vector2 position = positions[i];
-                    positions.RemoveAt(i);
-
-                    if (CanPlaceAtWorld(position, model))
-                    {
-                        InGame.instance.bridge.CreateTowerAt(position, model, new Il2CppAssets.Scripts.ObjectId(), false, null, true, false, false);
-                        break;
-                    }
+                if (CanPlaceAtWorld(position, model))
+                {                    
+                    InGame.instance.bridge.CreateTowerAt(position, model, new Il2CppAssets.Scripts.ObjectId(), false, null, true, false, false);
+                    break;
                 }
-
-                if (positions.Count == 0)
-                    RefreshShop();
             }
+
+            if (positions.Count == 0)
+                RefreshShop();
         }
 
         public override void OnTowerSold(Tower tower, float amount)
         {
             base.OnTowerSold(tower, amount);
 
-            if (Settings.EnableMod && _ezilis.Contains(tower) && tower.towerModel.tier == 20)
+            if (Settings.EnableMod && ezilis.Contains(tower))
             {
                 positions.Clear();
                 positions.Add(new(tower.Position.X, tower.Position.Y));
 
-                for (int i = _ezilis.Count - 1; i >= 0; i--)
+                for (int i = ezilis.Count - 1; i >= 0; i--)
                 {
-                    Tower ezili = _ezilis[i];
-                    if (ezili.towerModel.tier == 20)
-                    {
-                        ezili.SellTower();
-                        _ezilis.Remove(ezili);
-                        positions.Add(new(ezili.Position.X, ezili.Position.Y));
-                    }
+                    Tower ezili = ezilis[i];
+                    positions.Add(new(ezili.Position.X, ezili.Position.Y));
+                    ezilis.Remove(ezili);
+                    ezili.SellTower();
                 }
             }
         }
@@ -120,23 +116,22 @@ namespace Ezilink
             base.OnTowerDestroyed(tower);
 
             if (tower.towerModel.baseId == "Ezili")
-            {
-                _ezilis.Remove(tower);
-            }
+                ezilis.Remove(tower);
         }
 
         public override void OnTowerUpgraded(Tower tower, string upgradeName, TowerModel newBaseTowerModel)
         {
             base.OnTowerUpgraded(tower, upgradeName, newBaseTowerModel);
 
-            if (!Settings.EnableMod || tower.towerModel.baseId != "Ezili" || !_ezilis.Contains(tower)) return;
+            if (tower.towerModel.baseId != "Ezili" || !Settings.EnableMod || !ezilis.Contains(tower)) return;
 
             upgradingEzilis = true;
-            _ezilis.Remove(tower);
+            ezilis.Remove(tower);
 
-            for (int i = _ezilis.Count - 1; i >= 0; i--) {
-                Tower ezili = _ezilis[i];
-                _ezilis.Remove(ezili);
+            for (int i = ezilis.Count - 1; i >= 0; i--)
+            {
+                Tower ezili = ezilis[i];
+                ezilis.Remove(ezili);
 
                 if (ezili.towerModel.tier < 20)
                     UpgradeTower(ezili.GetTowerToSim(), 0);
